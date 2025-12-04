@@ -1,2 +1,0 @@
-print("axaxaxaxax)))")
-print("Precols))))")

@@ -42,3 +42,16 @@ Microwave <- R6Class(
     }
   )
 )
+
+microwave1 <- Microwave$new()
+microwave2 <- Microwave$new(power = 1200, door_open = FALSE)
+
+cat("Печь 1 (дверь открыта):\n")
+microwave1$cook()
+
+cat("\nПечь 1 (закрываем дверь):\n")
+microwave1$close_door()
+microwave1$cook()
+
+cat("\nПечь 2 (высокая мощность):\n")
+microwave2$cook()

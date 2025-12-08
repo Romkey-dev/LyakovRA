@@ -620,6 +620,410 @@ class Department:
         return f"Department(name='{self.__name}', employees={len(self.__employees)})"
 
 
+class Project:
+    """проект компании"""
+
+    VALID_STATUSES = {"planning", "active", "completed", "cancelled"}
+
+    def __init__(self, project_id: int, name: str, description: str, deadline: datetime, status: str = "planning"):
+        """
+        Args:
+            project_id: id проекта
+            name: Название
+            description: Описание
+            deadline: Срок выполнения
+            status:  planning, active, completed, cancelled
+
+        ValueError: Если данные некорректны
+        """
+        if not isinstance(project_id, int) or project_id <= 0:
+            raise ValueError("ID проекта должен быть положительным целым числом")
+        if not isinstance(name, str) or name.strip() == "":
+            raise ValueError("Название проекта не должно быть пустой строкой")
+        if not isinstance(description, str):
+            raise ValueError("Описание проекта должно быть строкой")
+        if not isinstance(deadline, datetime):
+            raise ValueError("Срок должен быть объектом datetime")
+        if status not in self.VALID_STATUSES:
+            raise ValueError(f"Статус должен быть одним из: {self.VALID_STATUSES}")
+
+        self.__project_id = project_id
+        self.__name = name
+        self.__description = description
+        self.__deadline = deadline
+        self.__status = status
+        self.__team: List[AbstractEmployee] = []
+
+    @property
+    def project_id(self) -> int:
+        """Возвращает ID """
+        return self.__project_id
+
+    @property
+    def name(self) -> str:
+        """Возвращает название"""
+        return self.__name
+
+    @property
+    def description(self) -> str:
+        """Возвращает описание"""
+        return self.__description
+
+    @property
+    def deadline(self) -> datetime:
+        """Возвращает срок выполнения"""
+        return self.__deadline
+
+    @property
+    def status(self) -> str:
+        """Возвращает статус"""
+        return self.__status
+
+    def add_team_member(self, employee: AbstractEmployee) -> None:
+        """
+        Добавляет сотрудника
+
+        Args:
+            employee: Сотрудник для добавления
+
+        ValueError: Если сотрудник уже в проекте или проект завершен/отменен
+        """
+        if not isinstance(employee, AbstractEmployee):
+            raise ValueError("Можно добавить только объект типа AbstractEmployee")
+
+        if self.__status in {"completed", "cancelled"}:
+            raise ValueError(f"Нельзя добавить сотрудника в проект со статусом '{self.__status}'")
+
+        # Проверка если ли уже сотрудник
+        for team_member in self.__team:
+            if team_member.id == employee.id:
+                raise ValueError(f"Сотрудник с ID {employee.id} уже в проекте")
+
+        self.__team.append(employee)
+
+    def remove_team_member(self, employee_id: int) -> None:
+        """
+        Удаляет сотрудника по ID
+
+        Args:
+            employee_id: ID сотрудника для удаления
+
+        ValueError: Если сотрудник не найден
+        """
+        if not isinstance(employee_id, int) or employee_id <= 0:
+            raise ValueError("ID должен быть положительным целым числом")
+
+        for i, team_member in enumerate(self.__team):
+            if team_member.id == employee_id:
+                del self.__team[i]
+                return
+
+        raise ValueError(f"Сотрудник с ID {employee_id} не найден в проекте")
+
+    def get_team(self) -> List[AbstractEmployee]:
+        """
+        Возвращает список команды
+        """
+        return self.__team.copy()
+
+    def get_team_size(self) -> int:
+        """
+        Возвращает размер команды
+
+        Returns:
+            Количество сотрудников в проекте
+        """
+        return len(self.__team)
+
+    def calculate_total_salary(self) -> float:
+        """
+        Расчет суммарной зарплаты команды
+
+        Returns:
+            Сумма зарплат
+        """
+        total = 0.0
+        for employee in self.__team:
+            total += employee.calculate_salary()
+        return total
+
+    def get_project_info(self) -> str:
+        """
+        Полная информация о проекте
+
+        Returns:
+            Строка с информацией
+        """
+        return (f"Проект #{self.__project_id}: {self.__name}\n"
+                f"Описание: {self.__description}\n"
+                f"Срок: {self.__deadline.strftime('%d.%m.%Y')}\n"
+                f"Статус: {self.__status}\n"
+                f"Команда: {len(self.__team)} сотрудников\n"
+                f"Общая зарплата команды: {self.calculate_total_salary():.2f}")
+
+    def change_status(self, new_status: str) -> None:
+        """
+        Изменение статуса
+
+        Args:
+            new_status: Новый статус проекта
+
+        ValueError: Если статус некорректен
+        """
+        if new_status not in self.VALID_STATUSES:
+            raise ValueError(f"Статус должен быть одним из: {self.VALID_STATUSES}")
+
+        self.__status = new_status
+
+    def __str__(self) -> str:
+        """Строковое представление проекта"""
+        return f"Проект: {self.__name} (Статус: {self.__status}, Команда: {len(self.__team)} чел.)"
+
+    def __len__(self) -> int:
+        """Возвращает размер команды"""
+        return len(self.__team)
+
+    def __contains__(self, employee: AbstractEmployee) -> bool:
+        """Проверяет, есть ли сотрудник в проекте"""
+        if not isinstance(employee, AbstractEmployee):
+            return False
+
+        for team_member in self.__team:
+            if team_member == employee:
+                return True
+        return False
+
+
+class Company:
+    """компания"""
+
+    def __init__(self, name: str):
+        """
+        Args:
+            name: Название компании
+
+        ValueError: Если название пустое
+        """
+        if not isinstance(name, str) or name.strip() == "":
+            raise ValueError("Название компании не должно быть пустой строкой")
+
+        self.__name = name
+        self.__departments: List[Department] = []
+        self.__projects: List[Project] = []
+
+    @property
+    def name(self) -> str:
+        """Возвращает название комп"""
+        return self.__name
+
+    # управления отделами
+
+    def add_department(self, department: Department) -> None:
+        """
+        Добавляет отдел в компанию
+
+        Args:
+            department: Отдел для добавления
+
+        ValueError: Если отдел уже есть в компании
+        """
+        if not isinstance(department, Department):
+            raise ValueError("Можно добавить только объект типа Department")
+
+        # Проверка
+        for dept in self.__departments:
+            if dept.name == department.name:
+                raise ValueError(f"Отдел с названием '{department.name}' уже существует")
+
+        self.__departments.append(department)
+
+    def remove_department(self, department_name: str) -> None:
+        """
+        Удаляет отдел по названию
+
+        Args:
+            department_name: Название отдела для удаления
+
+        ValueError: Если отдел не найден
+        """
+        for i, dept in enumerate(self.__departments):
+            if dept.name == department_name:
+                del self.__departments[i]
+                return
+
+        raise ValueError(f"Отдел с названием '{department_name}' не найден")
+
+    def get_departments(self) -> List[Department]:
+        """
+        Возвращает список всех отделов
+
+        Returns:
+            Копию списка отделов
+        """
+        return self.__departments.copy()
+
+    # управление проектами
+
+    def add_project(self, project: Project) -> None:
+        """
+        Добавляет проект в компанию
+
+        Args:
+            project: Проект для добавления
+
+        ValueError: Если проект уже есть в компании
+        """
+        if not isinstance(project, Project):
+            raise ValueError("Можно добавить только объект типа Project")
+
+        # Проверка на id
+        for proj in self.__projects:
+            if proj.project_id == project.project_id:
+                raise ValueError(f"Проект с ID {project.project_id} уже существует")
+
+        self.__projects.append(project)
+
+    def remove_project(self, project_id: int) -> None:
+        """
+        Удаляет проект по ID
+
+        Args:
+            project_id: ID проекта для удаления
+
+        ValueError: Если проект не найден
+        """
+        for i, proj in enumerate(self.__projects):
+            if proj.project_id == project_id:
+                del self.__projects[i]
+                return
+
+        raise ValueError(f"Проект с ID {project_id} не найден")
+
+    def get_projects(self) -> List[Project]:
+        """
+        Возвращает список всех проектов
+
+        Returns:
+            Копию списка проектов
+        """
+        return self.__projects.copy()
+
+    # Общие методы
+
+    def get_all_employees(self) -> List[AbstractEmployee]:
+        """
+        Получение всех сотрудников компании
+
+        Returns:
+            Список всех сотрудников всех отделов
+        """
+        all_employees = []
+        for department in self.__departments:
+            all_employees.extend(department.get_employees())
+        return all_employees
+
+    def find_employee_by_id(self, employee_id: int) -> Optional[AbstractEmployee]:
+        """
+        Поиск сотрудника по ID во всех отделах
+
+        Args:
+            employee_id: ID сотрудника для поиска
+
+        Returns:
+            Найденный сотрудник или None
+        """
+        if not isinstance(employee_id, int) or employee_id <= 0:
+            raise ValueError("ID должен быть положительным целым числом")
+
+        for department in self.__departments:
+            employee = department.find_employee_by_id(employee_id)
+            if employee:
+                return employee
+        return None
+
+    def calculate_total_monthly_cost(self) -> float:
+        """
+        Расчет общих месячных зп
+
+        Returns:
+            Сумма зарплат всех сотрудников компании
+        """
+        total = 0.0
+        for department in self.__departments:
+            total += department.calculate_total_salary()
+        return total
+
+    def get_projects_by_status(self, status: str) -> List[Project]:
+        """
+        Фильтрация проектов по статусу
+
+        Args:
+            status: Статус для фильтрации
+
+        Returns:
+            Список проектов с указанным статусом
+        """
+        if status not in Project.VALID_STATUSES:
+            raise ValueError(f"Статус должен быть одним из: {Project.VALID_STATUSES}")
+
+        return [project for project in self.__projects if project.status == status]
+
+    def get_company_info(self) -> str:
+        """
+        Полная информация о компании
+
+        Returns:
+            Строка с информацией
+        """
+        total_employees = sum(len(dept) for dept in self.__departments)
+        total_projects = len(self.__projects)
+
+        return (f"Компания: {self.__name}\n"
+                f"Отделов: {len(self.__departments)}\n"
+                f"Сотрудников: {total_employees}\n"
+                f"Проектов: {total_projects}\n"
+                f"Месячные затраты: {self.calculate_total_monthly_cost():.2f}")
+
+    def __str__(self) -> str:
+        """Строковое представление компании"""
+        total_employees = sum(len(dept) for dept in self.__departments)
+        return f"Компания: {self.__name} (Отделов: {len(self.__departments)}, Сотрудников: {total_employees})"
+
+    def __len__(self) -> int:
+        """Возвращает общее количество сотрудников"""
+        return sum(len(dept) for dept in self.__departments)
+
+
+# ИСКЛЮЧЕНИЯ
+class EmployeeNotFoundError(Exception):
+    """сотрудник не найден"""
+    pass
+
+class DepartmentNotFoundError(Exception):
+    """отдел не найден"""
+    pass
+
+class ProjectNotFoundError(Exception):
+    """проект не найден"""
+    pass
+
+class InvalidStatusError(Exception):
+    """неверный статус"""
+    pass
+
+class DuplicateIdError(Exception):
+    """ дублирование ID"""
+    pass
+
+class InvalidDataError(Exception):
+    """неверные данные"""
+    pass
+
+class FinancialValidationError(Exception):
+    """ошибка валидации финансовых показателей"""
+    pass
+
+
 # тест
 if __name__ == "__main__":
     print("=== ДЕМОНСТРАЦИЯ ===")

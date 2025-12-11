@@ -2,7 +2,11 @@ import json
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-
+from .exceptions import (
+    InvalidDataError,
+    FinancialValidationError,
+    DuplicateIdError
+)
 
 class Employee(AbstractEmployee):
     def __init__(self, id_empl, name, department, base_salary):
@@ -90,14 +94,27 @@ class Employee(AbstractEmployee):
             'base_salary': self.__base_salary
         }
 
-    @classmethod
+@classmethod
     def from_dict(cls, data: dict) -> 'Employee':
-        """Создает сотрудника из словаря"""
+        """Создает сотрудника из словаря с валидацией"""
         required_fields = ['id', 'name', 'department', 'base_salary']
+        
         for field in required_fields:
             if field not in data:
-                raise InvalidDataError(f"Отсутствует обязательное поле: {field}")
-
+                raise InvalidDataError(
+                    field=f"обязательное поле '{field}'",
+                    value="отсутствует",
+                    expected="присутствует в данных"
+                )
+        
+        # Проверяем тип данных
+        if not isinstance(data['id'], int):
+            raise InvalidDataError(
+                field="id",
+                value=data['id'],
+                expected="целое число"
+            )
+        
         return cls(
             id_empl=data['id'],
             name=data['name'],

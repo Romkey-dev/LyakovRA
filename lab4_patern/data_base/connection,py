@@ -1,0 +1,86 @@
+import sqlite3
+from typing import Optional
+
+
+class DatabaseConnection:
+    """""
+    Singleton для управления подключением к базе данных SQLite.
+  
+    Гарантирует единственное подключение к БД в рамках приложения.
+    """""
+    
+    _instance: Optional['DatabaseConnection'] = None
+    _connection: Optional[sqlite3.Connection] = None
+    
+    def __new__(cls):
+      """ создание нового экземпляра"""
+        if cls._instance is None:
+            cls._instance = super(DatabaseConnection, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+      """ инициализация"""
+        if self._connection is None:
+            self._connection = None
+    
+    @classmethod
+    def get_instance(cls) -> 'DatabaseConnection':
+      """
+      Получить единственный экземпляр класса.
+      """
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def get_connection(self, db_path: str = "company.db") -> sqlite3.Connection:
+     """ получить подключение к бд""" 
+        if self._connection is None:
+            self._connection = sqlite3.connect(db_path)
+            self._connection.row_factory = sqlite3.Row
+            self._create_tables()
+        return self._connection
+    
+    def close_connection(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+            self._connection = None
+    
+    def _create_tables(self) -> None:
+      """создание таблицы в бд"""
+        if self._connection is None:
+            return
+        
+        cursor = self._connection.cursor()
+        # сотрудники
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS employees (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                department TEXT NOT NULL,
+                base_salary REAL NOT NULL,
+                employee_type TEXT NOT NULL,
+                bonus REAL,
+                tech_stack TEXT,
+                seniority_level TEXT,
+                commission_rate REAL,
+                sales_volume REAL
+            )
+        """)
+        # отделы
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS departments (
+                name TEXT PRIMARY KEY
+            )
+        """)
+        
+        self._connection.commit()
+    
+    def reset_instance(self) -> None:
+      """
+        Сбросить экземпляр
+        FOR TEST ONLY
+        """
+        if self._connection is not None:
+            self._connection.close()
+        self._connection = None
+        DatabaseConnection._instance = None

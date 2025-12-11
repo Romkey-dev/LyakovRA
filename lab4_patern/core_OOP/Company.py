@@ -2,6 +2,14 @@ import json
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from .exceptions import (
+    EmployeeNotFoundError,
+    DepartmentNotFoundError,
+    ProjectNotFoundError,
+    DuplicateIdError,
+    InvalidDataError
+)
+
 
 class Company:
     """компания"""
@@ -14,11 +22,14 @@ class Company:
         ValueError: Если название пустое
         """
         if not isinstance(name, str) or name.strip() == "":
-            raise InvalidDataError("Название компании не должно быть пустой строкой")
-
+            raise InvalidDataError(
+                field="название компании",
+                value=name,
+                expected="непустая строка"
+            )
         self.__name = name
-        self.__departments: List[Department] = []
-        self.__projects: List[Project] = []
+        self.__departments = []
+        self.__projects = []
 
     @property
     def name(self) -> str:
@@ -27,23 +38,16 @@ class Company:
 
     # управления отделами
 
-    def add_department(self, department: Department) -> None:
-        """
-        Добавляет отдел в компанию
-
-        Args:
-            department: Отдел для добавления
-
-        ValueError: Если отдел уже есть в компании
-        """
-        if not isinstance(department, Department):
-            raise InvalidDataError("Можно добавить только объект типа Department")
-
-        # Проверка
+    def add_department(self, department):
+        """Добавляет отдел с проверкой уникальности"""
+        # Проверка уникальности названия отдела
         for dept in self.__departments:
             if dept.name == department.name:
-                raise DuplicateIdError(f"Отдел с названием '{department.name}' уже существует")
-
+                raise DuplicateIdError(
+                    entity_type="Отдел",
+                    entity_id=department.name
+                )
+        
         self.__departments.append(department)
 
     def remove_department(self, department_name: str) -> None:
@@ -149,6 +153,16 @@ class Company:
             if employee:
                 return employee
         return None
+
+    def find_employee_company_wide(self, employee_id: int):
+        """Ищет сотрудника во всей компании"""
+        for department in self.__departments:
+            try:
+                return department.find_employee_by_id(employee_id)
+            except EmployeeNotFoundError:
+                continue
+        
+        raise EmployeeNotFoundError(employee_id)
 
     def calculate_total_monthly_cost(self) -> float:
         """

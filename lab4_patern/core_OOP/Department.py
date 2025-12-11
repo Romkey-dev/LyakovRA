@@ -2,6 +2,13 @@ import json
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from .exceptions import (
+    EmployeeNotFoundError,
+    DepartmentNotFoundError,
+    DuplicateIdError,
+    InvalidDataError
+)
+
 
 class Department:
     """Класс для отделов компании"""
@@ -27,43 +34,27 @@ class Department:
             raise InvalidDataError("Название отдела не должно быть пустой строкой")
         self.__name = value
 
-    def add_employee(self, employee: AbstractEmployee) -> None:
-        """
-        Добавляет сотрудника
-
-        Args:
-            employee: Объект сотрудника для добавления
-
-        ValueError: Если сотрудник уже есть в отделе
-        """
-        if not isinstance(employee, AbstractEmployee):
-            raise InvalidDataError("Можно добавить только объект типа AbstractEmployee")
-
+     def add_employee(self, employee):
+        """Добавляет сотрудника с проверкой уникальности ID"""
         # Проверка уникальности ID
         for emp in self.__employees:
             if emp.id == employee.id:
-                raise DuplicateIdError(f"Сотрудник с ID {employee.id} уже есть в отделе")
-
+                raise DuplicateIdError(
+                    entity_type="Сотрудник",
+                    entity_id=employee.id
+                )
+        
         self.__employees.append(employee)
-
-    def remove_employee(self, employee_id: int) -> None:
-        """
-        Удаляет сотрудника по ID
-
-        Args:
-            employee_id: ID сотрудника для удаления
-
-        ValueError: Если сотрудник с таким ID не найден
-        """
-        if not isinstance(employee_id, int) or employee_id <= 0:
-            raise InvalidDataError("ID должен быть положительным целым числом")
-
+    
+    def remove_employee(self, employee_id: int):
+        """Удаляет сотрудника по ID"""
         for i, emp in enumerate(self.__employees):
             if emp.id == employee_id:
                 del self.__employees[i]
                 return
-
-        raise EmployeeNotFoundError(f"Сотрудник с ID {employee_id} не найден в отделе")
+        
+        raise EmployeeNotFoundError(employee_id)
+    
 
     def get_employees(self) -> List[AbstractEmployee]:
         """
@@ -110,24 +101,13 @@ class Department:
         # Удаляем нулевые знач
         return {k: v for k, v in counts.items() if v > 0}
 
-    def find_employee_by_id(self, employee_id: int) -> Optional[AbstractEmployee]:
-        """
-        Ищет сотрудника по ID
-
-        Args:
-            employee_id: ID сотрудника для поиска
-
-        Returns:
-            Найденный сотрудник или None, если не найден
-        """
-        if not isinstance(employee_id, int) or employee_id <= 0:
-            raise InvalidDataError("ID должен быть положительным целым числом")
-
+    def find_employee_by_id(self, employee_id: int):
+        """Ищет сотрудника по ID"""
         for employee in self.__employees:
             if employee.id == employee_id:
                 return employee
-
-        return None
+        
+        raise EmployeeNotFoundError(employee_id)
 
     def to_dict(self) -> dict:
         """Конвертирует отдел в словарь"""

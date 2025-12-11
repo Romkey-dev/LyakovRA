@@ -1,5 +1,6 @@
 import sqlite3
 from typing import Optional
+from core_OOP.exceptions import DatabaseError, EmployeeNotFoundError
 
 
 class DatabaseConnection:
@@ -84,3 +85,33 @@ class DatabaseConnection:
             self._connection.close()
         self._connection = None
         DatabaseConnection._instance = None
+
+    def get_employee(self, employee_id: int):
+        """Получить сотрудника с проверкой существования"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM employees WHERE id = ?", (employee_id,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise EmployeeNotFoundError(employee_id)
+        
+        return dict(result)
+    
+    def save_employee(self, employee_data):
+        """Сохранить сотрудника с валидацией"""
+        # Проверяем обязательные поля
+        required = ['id', 'name', 'department', 'base_salary']
+        for field in required:
+            if field not in employee_data:
+                raise InvalidDataError(
+                    field=f"обязательное поле '{field}'",
+                    value="отсутствует",
+                    expected="присутствует"
+                )
+        
+        try:
+            # ... сохранение в БД
+        except sqlite3.Error as e:
+            raise DatabaseError(f"Ошибка БД при сохранении сотрудника: {e}")

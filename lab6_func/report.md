@@ -451,6 +451,5 @@ fn filter_orders_by_status(orders: &[Order], status: &str) -> Vec<Order> {
 ├── rust/
 │   └── comparison.rs
 ├── analitics.md
-├── README.md
 └── ОТЧЕТ.md
 ```
